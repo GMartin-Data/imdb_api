@@ -1,6 +1,7 @@
 import json
 import urllib.parse
 
+from loguru import logger
 import scrapy
 
 from imdbscraper.items import FilmItem
@@ -25,6 +26,7 @@ class MovieApiSpider(scrapy.Spider):
     counter = 0
     limit = 100  # For testing purposes
 
+    @logger.catch
     def start_requests(self):
         # Adjusted variables without the "after" parameter for the initial request
         variables = {
@@ -57,7 +59,7 @@ class MovieApiSpider(scrapy.Spider):
 
         yield scrapy.Request(url, headers=API_HEADERS, callback=self.parse_api_response)
 
-
+    @logger.catch
     def parse_api_response(self, response):
         BASE_URL = "https://www.imdb.com/title/"
         json_resp = response.json()
@@ -65,7 +67,8 @@ class MovieApiSpider(scrapy.Spider):
 
         # Extract film data
         items = data['edges']
-        for item in items:
+        for idx, item in enumerate(items):
+            print(10*"#", idx, 10*"#")
             if self.counter < self.limit:
                 self.counter += 1
                 film = item['node']['title']
@@ -105,7 +108,7 @@ class MovieApiSpider(scrapy.Spider):
         if has_next_page:
             yield from self.schedule_next_api_call(end_cursor)
         
-
+    @logger.catch
     def parse_film_page(self, response):
         # Retrieve API film-specific data passed via meta
         api_data = response.meta['api_data']
@@ -135,6 +138,7 @@ class MovieApiSpider(scrapy.Spider):
 
         yield film_item
 
+    @logger.catch
     def schedule_next_api_call(self, end_cursor):
         # Forge the next API request URL using the cursor
         variables = {

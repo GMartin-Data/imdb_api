@@ -80,7 +80,7 @@ class MovieApiSpider(scrapy.Spider):
                     'release_year': film['releaseYear']['year'],
                     'synopsis': film['plot']['plotText']['plainText'],
                     'rating': film['ratingsSummary']['aggregateRating'],
-                    'vote_count': film['ratingSummary']['voteCount'],
+                    'vote_count': film['ratingsSummary']['voteCount'],
                     'metacritic_score': film['metacritic']['metascore']['score'],
                     'poster_link': film['primaryImage']['url']
                 }

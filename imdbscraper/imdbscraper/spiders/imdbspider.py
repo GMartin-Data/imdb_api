@@ -23,9 +23,14 @@ class MovieApiSpider(scrapy.Spider):
     name = "movie_api"
     allowed_domains = ['caching.graphql.imdb.com', 'imdb.com']
     start_urls = ['https://caching.graphql.imdb.com/']
-    counter = 0
-    limit = 50  # For testing purposes
+    # counter = 0
+    # limit = 50  # For testing purposes
     running = True
+
+    def __init__(self, limit: int =50, *args, **kwargs):
+        super(MovieApiSpider, self).__init__(*args, **kwargs)
+        self.limit = int(limit)
+        self.counter = 0
 
     @logger.catch
     def start_requests(self):

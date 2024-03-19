@@ -6,8 +6,9 @@
 import scrapy
 
 
-class FilmItem(scrapy.Item):
+class ArtworkItem(scrapy.Item):
     id = scrapy.Field()
+    kind = scrapy.Field()
     title = scrapy.Field()
     original_title = scrapy.Field()
     genres = scrapy.Field()

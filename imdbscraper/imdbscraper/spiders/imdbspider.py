@@ -4,7 +4,7 @@ import urllib.parse
 from loguru import logger
 import scrapy
 
-from imdbscraper.items import FilmItem
+from imdbscraper.items import ArtworkItem
 
 
 API_HEADERS = {
@@ -19,16 +19,18 @@ WEB_HEADERS = {
 }
 
 
-class MovieApiSpider(scrapy.Spider):
-    name = "movie_api"
+class ArtworkApiSpider(scrapy.Spider):
+    name = "artwork_api"
     allowed_domains = ['caching.graphql.imdb.com', 'imdb.com']
     start_urls = ['https://caching.graphql.imdb.com/']
-    # counter = 0
-    # limit = 50  # For testing purposes
     running = True
 
-    def __init__(self, limit: int =50, *args, **kwargs):
-        super(MovieApiSpider, self).__init__(*args, **kwargs)
+    def __init__(self, kind: str = "movie", limit: int = 50, *args, **kwargs):
+        """
+        The possible values for `kind` are "movie" (default) or "tvSeries"
+        """
+        super(ArtworkApiSpider, self).__init__(*args, **kwargs)
+        self.kind = kind
         self.limit = int(limit)
         self.counter = 0
 
@@ -44,7 +46,7 @@ class MovieApiSpider(scrapy.Spider):
             "sortBy": "POPULARITY",
             "sortOrder": "ASC",
             "titleTypeConstraint": {
-                "anyTitleTypeIds": ["movie"]
+                "anyTitleTypeIds": [self.kind]
             }
             # Other parameters as needed
         }
@@ -72,45 +74,51 @@ class MovieApiSpider(scrapy.Spider):
         json_resp = response.json()
         data = json_resp['data']['advancedTitleSearch']
 
-        # Extract film data
+        # Extract artwork data
         items = data['edges']
         for idx, item in enumerate(items):
             if self.counter < self.limit:
                 self.counter += 1
-                film = item['node']['title']
-                logger.info(f"GOT idx: {idx} for film of id: {film.get('id', 'missing')}")
+                artwork = item['node']['title']
+                logger.info(f"GOT idx: {idx} for artwork of id: {artwork.get('id', 'missing')}")
 
                 ## Implement hard logic for complex keys
+                # kind
+                if (title_type := artwork.get('titleType', {})) is not None:
+                    kind = title_type.get('text')
+                else:
+                    kind = None
+
                 # title
-                if (title_text := film.get('titleText', {})) is not None:
+                if (title_text := artwork.get('titleText', {})) is not None:
                     title = title_text.get('text')
                 else:
                     title = None
                  
                 # original_title
-                if (original_title_text := film.get('originalTitleText', {})) is not None:
+                if (original_title_text := artwork.get('originalTitleText', {})) is not None:
                     original_title = original_title_text.get('text')
                 else:
                     original_title = None
                     
                 # Special case of 'genres'
-                genres = film.get('titleGenres', {}).get('genres', [])
+                genres = artwork.get('titleGenres', {}).get('genres', [])
                 genres = ', '.join([genre.get('genre', {}).get('text', '') for genre in genres])
 
                 # duration_s
-                if (runtime := film.get('runtime', {})) is not None:
+                if (runtime := artwork.get('runtime', {})) is not None:
                     duration_s = runtime.get('seconds')
                 else:
                     duration_s = None
 
                 # release_year
-                if (release := film.get('releaseYear', {})) is not None:
+                if (release := artwork.get('releaseYear', {})) is not None:
                     release_year = release.get('year')
                 else:
                     release_year = None
 
                 # synopsis
-                if (plot := film.get('plot', {})) is None:
+                if (plot := artwork.get('plot', {})) is None:
                     synopsis = None
                 else:
                     if (plot_text := plot.get('plotText', {})) is None:
@@ -119,14 +127,14 @@ class MovieApiSpider(scrapy.Spider):
                         synopsis = plot_text.get('plainText')
                 
                 # rating & vote_count
-                if (ratings_summary := film.get('ratingsSummary', {})) is not None:
+                if (ratings_summary := artwork.get('ratingsSummary', {})) is not None:
                     rating = ratings_summary.get('aggregateRating')
                     vote_count = ratings_summary.get('voteCount')
                 else:
                     rating = vote_count = None
                     
                 # metacritic_score
-                if (metacritic := film.get('metacritic', {})) is None:
+                if (metacritic := artwork.get('metacritic', {})) is None:
                     metacritic_score = None
                 else:
                     if (metascore := metacritic.get('metascore', {})) is None:
@@ -135,13 +143,14 @@ class MovieApiSpider(scrapy.Spider):
                         metacritic_score = metascore.get('score')
                 
                 # poster_link
-                if (primary_image := film.get('primaryImage', {})) is not None:
+                if (primary_image := artwork.get('primaryImage', {})) is not None:
                     poster_link = primary_image.get('url')
                 else:
                     poster_link = None            
 
                 api_data = {
-                    'id': film.get('id', 'missing'),
+                    'id': artwork.get('id', 'missing'),
+                    'kind': kind,
                     'title': title,
                     'original_title': original_title,
                     'genres': genres,
@@ -153,13 +162,13 @@ class MovieApiSpider(scrapy.Spider):
                     'metacritic_score': metacritic_score,  # Implement np.nan?
                     'poster_link': poster_link,
                 }
-                film_page_url = f"{BASE_URL}{film['id']}"
+                artwork_page_url = f"{BASE_URL}{artwork['id']}"
 
-                # Pass film-specific data to the film page to scrape
+                # Pass artwork-specific data to the artwork page to scrape
                 yield scrapy.Request(
-                    film_page_url,
+                    artwork_page_url,
                     headers = WEB_HEADERS,
-                    callback = self.parse_film_page,
+                    callback = self.parse_artwork_page,
                     meta = {'api_data': api_data},
                 )
             else:
@@ -178,11 +187,11 @@ class MovieApiSpider(scrapy.Spider):
 
 
     @logger.catch
-    def parse_film_page(self, response):
-        # Retrieve API film-specific data passed via meta
+    def parse_artwork_page(self, response):
+        # Retrieve API artwork-specific data passed via meta
         api_data = response.meta['api_data']
 
-        # Scrape additional data from the film page
+        # Scrape additional data from the artwork page
         TOP_INFO = "h1[data-testid='hero__pageTitle'] ~ ul"
         scraped_data = {
             'audience': response.css(f"{TOP_INFO} li:nth-child(2) > a ::text").get(),
@@ -191,23 +200,24 @@ class MovieApiSpider(scrapy.Spider):
         }
 
         # Output an item
-        film_item = FilmItem()
-        film_item['id'] = api_data.get("id")
-        film_item['title'] = api_data.get("title")
-        film_item['original_title'] = api_data.get("original_title")
-        film_item['genres'] = api_data.get("genres")
-        film_item['duration_s'] = api_data.get("duration_s")
-        film_item['release_year'] = api_data.get("release_year")
-        film_item['synopsis'] = api_data.get("synopsis")
-        film_item['rating'] = api_data.get("rating")
-        film_item['vote_count'] = api_data.get("vote_count")
-        film_item['metacritic_score'] = api_data.get("metacritic_score")
-        film_item['poster_link'] = api_data.get("poster_link")
-        film_item['audience'] = scraped_data.get("audience")
-        film_item['casting'] = scraped_data.get("casting")
-        film_item['countries'] = scraped_data.get("countries")
+        artwork_item = ArtworkItem()
+        artwork_item['id'] = api_data.get("id")
+        artwork_item['kind'] = api_data.get("kind")
+        artwork_item['title'] = api_data.get("title")
+        artwork_item['original_title'] = api_data.get("original_title")
+        artwork_item['genres'] = api_data.get("genres")
+        artwork_item['duration_s'] = api_data.get("duration_s")
+        artwork_item['release_year'] = api_data.get("release_year")
+        artwork_item['synopsis'] = api_data.get("synopsis")
+        artwork_item['rating'] = api_data.get("rating")
+        artwork_item['vote_count'] = api_data.get("vote_count")
+        artwork_item['metacritic_score'] = api_data.get("metacritic_score")
+        artwork_item['poster_link'] = api_data.get("poster_link")
+        artwork_item['audience'] = scraped_data.get("audience")
+        artwork_item['casting'] = scraped_data.get("casting")
+        artwork_item['countries'] = scraped_data.get("countries")
 
-        yield film_item
+        yield artwork_item
 
 
     @logger.catch
@@ -220,7 +230,7 @@ class MovieApiSpider(scrapy.Spider):
             "sortBy": "POPULARITY",
             "sortOrder": "ASC",
             "titleTypeConstraint": {
-                "anyTitleTypeIds": ["movie"]
+                "anyTitleTypeIds": [self.kind]
             },
             # Adding end_cursor to delimit request
             "after": end_cursor,

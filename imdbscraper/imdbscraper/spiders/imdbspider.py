@@ -21,10 +21,10 @@ WEB_HEADERS = {
 
 class MovieApiSpider(scrapy.Spider):
     name = "movie_api"
-    allowed_domains = ['caching.graphql.imdb.com']
+    allowed_domains = ['caching.graphql.imdb.com', 'imdb.com']
     start_urls = ['https://caching.graphql.imdb.com/']
     counter = 0
-    limit = 100  # For testing purposes
+    limit = 50  # For testing purposes
     running = True
 
     @logger.catch
@@ -148,7 +148,7 @@ class MovieApiSpider(scrapy.Spider):
                     'metacritic_score': metacritic_score,  # Implement np.nan?
                     'poster_link': poster_link,
                 }
-                film_page_url = f"{BASE_URL}/{film['id']}"
+                film_page_url = f"{BASE_URL}{film['id']}"
                 logger.debug("J'AI BIEN FAIT L'URL DU FILM BRO§")
 
                 # Pass film-specific data to the film page to scrape

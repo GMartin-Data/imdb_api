@@ -25,6 +25,7 @@ class MovieApiSpider(scrapy.Spider):
     start_urls = ['https://caching.graphql.imdb.com/']
     counter = 0
     limit = 100  # For testing purposes
+    running = True
 
     @logger.catch
     def start_requests(self):
@@ -68,24 +69,83 @@ class MovieApiSpider(scrapy.Spider):
         # Extract film data
         items = data['edges']
         for idx, item in enumerate(items):
-            print(10*"#", idx, 10*"#")
             if self.counter < self.limit:
                 self.counter += 1
                 film = item['node']['title']
+                logger.info(f"GOT idx: {idx} for film of id: {film.get('id', 'missing')}")
+
+                ## Implement hard logic for complex keys
+                # title
+                if (title_text := film.get('titleText', {})) is not None:
+                    title = title_text.get('text')
+                else:
+                    title = None
+                 
+                # original_title
+                if (original_title_text := film.get('originalTitleText', {})) is not None:
+                    original_title = original_title_text.get('text')
+                else:
+                    original_title = None
+                    
                 # Special case of 'genres'
                 genres = film.get('titleGenres', {}).get('genres', [])
+                genres = ', '.join([genre.get('genre', {}).get('text', '') for genre in genres])
+
+                # duration_s
+                if (runtime := film.get('runtime', {})) is not None:
+                    duration_s = runtime.get('seconds')
+                else:
+                    duration_s = None
+
+                # release_year
+                if (release := film.get('releaseYear', {})) is not None:
+                    release_year = release.get('year')
+                else:
+                    release_year = None
+
+                # synopsis
+                if (plot := film.get('plot', {})) is None:
+                    synopsis = None
+                else:
+                    if (plot_text := plot.get('plotText', {})) is None:
+                        synopsis = None
+                    else:
+                        synopsis = plot_text.get('plainText')
+                
+                # rating & vote_count
+                if (rating_summary := film.get('RatingSummary', {})) is not None:
+                    rating = rating_summary.get('aggregateRating')
+                    vote_count = rating_summary.get('voteCount')
+                else:
+                    rating = vote_count = None
+                    
+                # metacritic_score
+                if (metacritic := film.get('metacritic', {})) is None:
+                    metacritic_score = None
+                else:
+                    if (metascore := metacritic.get('metascore', {})) is None:
+                        metacritic_score = None
+                    else:
+                        metacritic_score = metascore.get('score')
+                
+                # poster_link
+                if (primary_image := film.get('primaryImage', {})) is not None:
+                    poster_link = primary_image.get('url')
+                else:
+                    poster_link = None            
+
                 api_data = {
                     'id': film.get('id', 'missing'),
-                    'title': film.get('titleText', {}).get('text', ''),
-                    'original_title': film.get('originalTitleText', {}).get('text', ''),
-                    'genres': ', '.join([genre.get('genre', {}).get('text', '') for genre in genres]),
-                    'duration_s': film.get('runtime', {}).get('seconds', ''),
-                    'release_year': film.get('releaseYear', {}).get('year', ''),
-                    'synopsis': film.get('plot', {}).get('plotText', {}).get('plainText', ''),
-                    'rating': film.get('ratingsSummary', {}).get('aggregateRating'),  # Implement np.nan?
-                    'vote_count': film.get('ratingsSummary', {}).get('voteCount'),  # Implement np.nan?
-                    'metacritic_score': film.get('metacritic', {}).get('metascore', {}).get('score'),  # Implement np.nan?
-                    'poster_link': film.get('primaryImage', {}).get('url', '')
+                    'title': title,
+                    'original_title': original_title,
+                    'genres': genres,
+                    'duration_s': duration_s,
+                    'release_year': release_year,
+                    'synopsis': synopsis,
+                    'rating': rating,  # Implement np.nan?
+                    'vote_count': vote_count,  # Implement np.nan?
+                    'metacritic_score': metacritic_score,  # Implement np.nan?
+                    'poster_link': poster_link,
                 }
                 film_page_url = f"{BASE_URL}/{film['id']}"
 
@@ -98,15 +158,17 @@ class MovieApiSpider(scrapy.Spider):
                 )
             else:
                 # Eventually, implement a printing or a logging message
+                self.running = False
                 break
+        
+        if self.running:
+            # Extract pagination data
+            has_next_page = data.get('pageInfo', {}).get('hasNextPage', False)
+            end_cursor = data.get('pageInfo', {}).get('endCursor', '') if has_next_page else None  # SETTING endCursor to '' may cause problems.
 
-        # Extract pagination data
-        has_next_page = data.get('pageInfo', {}).get('hasNextPage', False)
-        end_cursor = data.get('pageInfo', {}).get('endCursor', '') if has_next_page else None  # SETTING endCursor to '' may cause problems.
-
-        # If there's a next page, schedule the next API call
-        if has_next_page:
-            yield from self.schedule_next_api_call(end_cursor)
+            # If there's a next page, schedule the next API call
+            if has_next_page:
+                yield from self.schedule_next_api_call(end_cursor)
         
     @logger.catch
     def parse_film_page(self, response):
@@ -164,6 +226,6 @@ class MovieApiSpider(scrapy.Spider):
         extensions_encoded = urllib.parse.quote(json.dumps(extensions))
 
         # Construct the full URL as before
-        next_api_url = f"{self.api_url}?operationName=AdvancedTitleSearch&variables={variables_encoded}&extensions={extensions_encoded}"
+        next_api_url = f"{self.start_urls[0]}?operationName=AdvancedTitleSearch&variables={variables_encoded}&extensions={extensions_encoded}"
 
         yield scrapy.Request(next_api_url, headers=API_HEADERS, callback=self.parse_api_response)

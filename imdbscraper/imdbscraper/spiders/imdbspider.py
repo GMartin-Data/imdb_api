@@ -22,6 +22,8 @@ class MovieApiSpider(scrapy.Spider):
     name = "movie_api"
     allowed_domains = ['caching.graphql.imdb.com']
     start_urls = ['https://caching.graphql.imdb.com/']
+    counter = 0
+    limit = 250  # For testing purposes
 
     def start_requests(self):
         # Adjusted variables without the "after" parameter for the initial request
@@ -64,31 +66,36 @@ class MovieApiSpider(scrapy.Spider):
         # Extract film data
         items = data['edges']
         for item in items:
-            film = item['node']['title']
-            # Special case of 'genres'
-            genres = film['titleGenres']['genres']
-            api_data = {
-                'id': film['id'],
-                'title': film['titleText']['text'],
-                'original_title': film['originalTitleText']['text'],
-                'genres': ', '.join([genre['genre']['text'] for genre in genres]),
-                'duration_s': film['runtime']['seconds'],
-                'release_year': film['releaseYear']['year'],
-                'synopsis': film['plot']['plotText']['plainText'],
-                'rating': film['ratingSummary']['aggregateRating'],
-                'vote_count': film['ratingSummary']['voteCount'],
-                'metacritic_score': film['metacritic']['metascore']['score'],
-                'poster_link': film['primaryImage']['url']
-            }
-            film_page_url = f"{BASE_URL}/{film['id']}"
+            if self.counter < self.limit:
+                self.counter += 1
+                film = item['node']['title']
+                # Special case of 'genres'
+                genres = film['titleGenres']['genres']
+                api_data = {
+                    'id': film['id'],
+                    'title': film['titleText']['text'],
+                    'original_title': film['originalTitleText']['text'],
+                    'genres': ', '.join([genre['genre']['text'] for genre in genres]),
+                    'duration_s': film['runtime']['seconds'],
+                    'release_year': film['releaseYear']['year'],
+                    'synopsis': film['plot']['plotText']['plainText'],
+                    'rating': film['ratingSummary']['aggregateRating'],
+                    'vote_count': film['ratingSummary']['voteCount'],
+                    'metacritic_score': film['metacritic']['metascore']['score'],
+                    'poster_link': film['primaryImage']['url']
+                }
+                film_page_url = f"{BASE_URL}/{film['id']}"
 
-            # Pass film-specific data to the film page to scrape
-            yield scrapy.Request(
-                film_page_url,
-                headers = WEB_HEADERS,
-                callback = self.parse_film_page,
-                meta = {'api_data': api_data},
-            )
+                # Pass film-specific data to the film page to scrape
+                yield scrapy.Request(
+                    film_page_url,
+                    headers = WEB_HEADERS,
+                    callback = self.parse_film_page,
+                    meta = {'api_data': api_data},
+                )
+            else:
+                # Eventually, implement a printing or a logging message
+                break
 
         # Extract pagination data
         has_next_page = data['pageInfo']['hasNextPage']

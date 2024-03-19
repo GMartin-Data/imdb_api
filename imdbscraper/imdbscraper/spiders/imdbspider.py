@@ -23,7 +23,7 @@ class MovieApiSpider(scrapy.Spider):
     allowed_domains = ['caching.graphql.imdb.com']
     start_urls = ['https://caching.graphql.imdb.com/']
     counter = 0
-    limit = 250  # For testing purposes
+    limit = 100  # For testing purposes
 
     def start_requests(self):
         # Adjusted variables without the "after" parameter for the initial request
@@ -53,7 +53,7 @@ class MovieApiSpider(scrapy.Spider):
         extensions_encoded = urllib.parse.quote(json.dumps(extensions))
 
         # Construct the full API URL
-        url = f"{self.api_url}?operationName=AdvancedTitleSearch&variables={variables_encoded}&extensions={extensions_encoded}"
+        url = f"{self.start_urls[0]}?operationName=AdvancedTitleSearch&variables={variables_encoded}&extensions={extensions_encoded}"
 
         yield scrapy.Request(url, headers=API_HEADERS, callback=self.parse_api_response)
 
@@ -79,7 +79,7 @@ class MovieApiSpider(scrapy.Spider):
                     'duration_s': film['runtime']['seconds'],
                     'release_year': film['releaseYear']['year'],
                     'synopsis': film['plot']['plotText']['plainText'],
-                    'rating': film['ratingSummary']['aggregateRating'],
+                    'rating': film['ratingsSummary']['aggregateRating'],
                     'vote_count': film['ratingSummary']['voteCount'],
                     'metacritic_score': film['metacritic']['metascore']['score'],
                     'poster_link': film['primaryImage']['url']

@@ -70,19 +70,19 @@ class MovieApiSpider(scrapy.Spider):
                 self.counter += 1
                 film = item['node']['title']
                 # Special case of 'genres'
-                genres = film['titleGenres']['genres']
+                genres = film.get('titleGenres', {}).get('genres', [])
                 api_data = {
-                    'id': film['id'],
-                    'title': film['titleText']['text'],
-                    'original_title': film['originalTitleText']['text'],
-                    'genres': ', '.join([genre['genre']['text'] for genre in genres]),
-                    'duration_s': film['runtime']['seconds'],
-                    'release_year': film['releaseYear']['year'],
-                    'synopsis': film['plot']['plotText']['plainText'],
-                    'rating': film['ratingsSummary']['aggregateRating'],
-                    'vote_count': film['ratingsSummary']['voteCount'],
-                    'metacritic_score': film['metacritic']['metascore']['score'],
-                    'poster_link': film['primaryImage']['url']
+                    'id': film.get('id', 'missing'),
+                    'title': film.get('titleText', {}).get('text', ''),
+                    'original_title': film.get('originalTitleText', {}).get('text', ''),
+                    'genres': ', '.join([genre.get('genre', {}).get('text', '') for genre in genres]),
+                    'duration_s': film.get('runtime', {}).get('seconds', ''),
+                    'release_year': film.get('releaseYear', {}).get('year', ''),
+                    'synopsis': film.get('plot', {}).get('plotText', {}).get('plainText', ''),
+                    'rating': film.get('ratingsSummary', {}).get('aggregateRating'),  # Implement np.nan?
+                    'vote_count': film.get('ratingsSummary', {}).get('voteCount'),  # Implement np.nan?
+                    'metacritic_score': film.get('metacritic', {}).get('metascore', {}).get('score'),  # Implement np.nan?
+                    'poster_link': film.get('primaryImage', {}).get('url', '')
                 }
                 film_page_url = f"{BASE_URL}/{film['id']}"
 
@@ -98,8 +98,8 @@ class MovieApiSpider(scrapy.Spider):
                 break
 
         # Extract pagination data
-        has_next_page = data['pageInfo']['hasNextPage']
-        end_cursor = data['pageInfo']['endCursor'] if has_next_page else None
+        has_next_page = data.get('pageInfo', {}).get('hasNextPage', False)
+        end_cursor = data.get('pageInfo', {}).get('endCursor', '') if has_next_page else None  # SETTING endCursor to '' may cause problems.
 
         # If there's a next page, schedule the next API call
         if has_next_page:

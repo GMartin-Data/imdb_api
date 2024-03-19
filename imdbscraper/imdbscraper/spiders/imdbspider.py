@@ -149,7 +149,6 @@ class MovieApiSpider(scrapy.Spider):
                     'poster_link': poster_link,
                 }
                 film_page_url = f"{BASE_URL}{film['id']}"
-                logger.debug("J'AI BIEN FAIT L'URL DU FILM BRO§")
 
                 # Pass film-specific data to the film page to scrape
                 yield scrapy.Request(
@@ -182,7 +181,8 @@ class MovieApiSpider(scrapy.Spider):
         TOP_INFO = "h1[data-testid='hero__pageTitle'] ~ ul"
         scraped_data = {
             'audience': response.css(f"{TOP_INFO} li:nth-child(2) > a ::text").get(),
-            # 'casting': # TO DO,
+            'casting': ', '.join(response.css("a[data-testid='title-cast-item__actor']::text").getall()),
+            'countries': ', '.join(response.css("li[data-testid='title-details-origin'] a::text").getall()),
         }
 
         # Output an item
@@ -198,10 +198,9 @@ class MovieApiSpider(scrapy.Spider):
         film_item['vote_count'] = api_data.get("vote_count")
         film_item['metacritic_score'] = api_data.get("metacritic_score")
         film_item['poster_link'] = api_data.get("poster_link")
-        film_item['audience'] = api_data.get("audience")
-        # film_item['casting'] = api_data.get("casting")
-
-        logger.debug("J'AI BIEN FINI film_item BRO§§§")
+        film_item['audience'] = scraped_data.get("audience")
+        film_item['casting'] = scraped_data.get("casting")
+        film_item['countries'] = scraped_data.get("countries")
 
         yield film_item
 

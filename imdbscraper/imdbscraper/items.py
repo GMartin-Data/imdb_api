@@ -19,4 +19,5 @@ class FilmItem(scrapy.Item):
     metacritic_score = scrapy.Field()
     poster_link = scrapy.Field()
     audience = scrapy.Field()
-    # casting = scrapy.Field()
+    casting = scrapy.Field()
+    countries = scrapy.Field()

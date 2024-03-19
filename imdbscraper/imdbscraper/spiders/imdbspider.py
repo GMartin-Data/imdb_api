@@ -27,10 +27,10 @@ class ArtworkApiSpider(scrapy.Spider):
 
     def __init__(self, kind: str = "movie", limit: int = 50, *args, **kwargs):
         """
-        The possible values for `kind` are "movie" (default) or "tvSeries"
+        The possible values for `kind` are "movie" (default), "tvSeries", or "movie,tvSeries"
         """
         super(ArtworkApiSpider, self).__init__(*args, **kwargs)
-        self.kind = kind
+        self.kind = kind.split(",")
         self.limit = int(limit)
         self.counter = 0
 
@@ -46,7 +46,7 @@ class ArtworkApiSpider(scrapy.Spider):
             "sortBy": "POPULARITY",
             "sortOrder": "ASC",
             "titleTypeConstraint": {
-                "anyTitleTypeIds": [self.kind]
+                "anyTitleTypeIds": self.kind
             }
             # Other parameters as needed
         }
@@ -230,7 +230,7 @@ class ArtworkApiSpider(scrapy.Spider):
             "sortBy": "POPULARITY",
             "sortOrder": "ASC",
             "titleTypeConstraint": {
-                "anyTitleTypeIds": [self.kind]
+                "anyTitleTypeIds": self.kind
             },
             # Adding end_cursor to delimit request
             "after": end_cursor,

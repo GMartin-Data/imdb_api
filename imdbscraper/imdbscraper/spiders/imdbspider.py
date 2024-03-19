@@ -60,6 +60,7 @@ class MovieApiSpider(scrapy.Spider):
 
         yield scrapy.Request(url, headers=API_HEADERS, callback=self.parse_api_response)
 
+
     @logger.catch
     def parse_api_response(self, response):
         BASE_URL = "https://www.imdb.com/title/"
@@ -148,6 +149,7 @@ class MovieApiSpider(scrapy.Spider):
                     'poster_link': poster_link,
                 }
                 film_page_url = f"{BASE_URL}/{film['id']}"
+                logger.debug("J'AI BIEN FAIT L'URL DU FILM BRO§")
 
                 # Pass film-specific data to the film page to scrape
                 yield scrapy.Request(
@@ -169,7 +171,8 @@ class MovieApiSpider(scrapy.Spider):
             # If there's a next page, schedule the next API call
             if has_next_page:
                 yield from self.schedule_next_api_call(end_cursor)
-        
+
+
     @logger.catch
     def parse_film_page(self, response):
         # Retrieve API film-specific data passed via meta
@@ -198,7 +201,10 @@ class MovieApiSpider(scrapy.Spider):
         film_item['audience'] = api_data.get("audience")
         # film_item['casting'] = api_data.get("casting")
 
+        logger.debug("J'AI BIEN FINI film_item BRO§§§")
+
         yield film_item
+
 
     @logger.catch
     def schedule_next_api_call(self, end_cursor):

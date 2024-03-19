@@ -114,9 +114,9 @@ class MovieApiSpider(scrapy.Spider):
                         synopsis = plot_text.get('plainText')
                 
                 # rating & vote_count
-                if (rating_summary := film.get('RatingSummary', {})) is not None:
-                    rating = rating_summary.get('aggregateRating')
-                    vote_count = rating_summary.get('voteCount')
+                if (ratings_summary := film.get('ratingsSummary', {})) is not None:
+                    rating = ratings_summary.get('aggregateRating')
+                    vote_count = ratings_summary.get('voteCount')
                 else:
                     rating = vote_count = None
                     

@@ -191,36 +191,50 @@ class ArtworkApiSpider(scrapy.Spider):
         # Retrieve API artwork-specific data passed via meta
         api_data = response.meta['api_data']
 
-        # Scrape additional data from the artwork page
+        ## Scrape additional data from the artwork page
+        # audience
         TOP_INFO = "h1[data-testid='hero__pageTitle'] ~ ul"
         if api_data['kind'] == "Movie":
             audience = response.css(f"{TOP_INFO} li:nth-child(2) > a ::text").get()
         else:
             audience = response.css(f"{TOP_INFO} li:nth-child(3) > a ::text").get()
+        # budget & gross
+        money = response.css("div[data-testid='title-boxoffice-section'] ul li span::text").getall()
+        logger.debug(f"{money = }")
+        try:
+            budget = money[1]
+            worldwide_gross = money[-1]
+        except Exception as e:
+            budget = None
+            worldwide_gross = None
+
         scraped_data = {
-            # 'audience': response.css(f"{TOP_INFO} li:nth-last-child(2) > a ::text").get(),
             'audience': audience,
             'casting': ', '.join(response.css("a[data-testid='title-cast-item__actor']::text").getall()),
             'countries': ', '.join(response.css("li[data-testid='title-details-origin'] a::text").getall()),
+            'budget': budget,
+            'worldwide_gross': worldwide_gross,
         }
 
         # Output an item
         artwork_item = ArtworkItem()
-        artwork_item['id'] = api_data.get("id")
-        artwork_item['kind'] = api_data.get("kind")
-        artwork_item['title'] = api_data.get("title")
-        artwork_item['original_title'] = api_data.get("original_title")
-        artwork_item['genres'] = api_data.get("genres")
-        artwork_item['duration_s'] = api_data.get("duration_s")
-        artwork_item['release_year'] = api_data.get("release_year")
-        artwork_item['synopsis'] = api_data.get("synopsis")
-        artwork_item['rating'] = api_data.get("rating")
-        artwork_item['vote_count'] = api_data.get("vote_count")
-        artwork_item['metacritic_score'] = api_data.get("metacritic_score")
-        artwork_item['poster_link'] = api_data.get("poster_link")
-        artwork_item['audience'] = scraped_data.get("audience")
-        artwork_item['casting'] = scraped_data.get("casting")
-        artwork_item['countries'] = scraped_data.get("countries")
+        artwork_item["id"] = api_data.get("id")
+        artwork_item["kind"] = api_data.get("kind")
+        artwork_item["title"] = api_data.get("title")
+        artwork_item["original_title"] = api_data.get("original_title")
+        artwork_item["genres"] = api_data.get("genres")
+        artwork_item["duration_s"] = api_data.get("duration_s")
+        artwork_item["release_year"] = api_data.get("release_year")
+        artwork_item["synopsis"] = api_data.get("synopsis")
+        artwork_item["rating"] = api_data.get("rating")
+        artwork_item["vote_count"] = api_data.get("vote_count")
+        artwork_item["metacritic_score"] = api_data.get("metacritic_score")
+        artwork_item["poster_link"] = api_data.get("poster_link")
+        artwork_item["audience"] = scraped_data.get("audience")
+        artwork_item["casting"] = scraped_data.get("casting")
+        artwork_item["countries"] = scraped_data.get("countries")
+        artwork_item["budget"] = scraped_data.get("budget")
+        artwork_item["worldwide_gross"] = scraped_data.get("worldwide_gross")
 
         yield artwork_item
 

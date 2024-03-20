@@ -22,3 +22,5 @@ class ArtworkItem(scrapy.Item):
     audience = scrapy.Field()
     casting = scrapy.Field()
     countries = scrapy.Field()
+    budget = scrapy.Field()
+    worldwide_gross = scrapy.Field()

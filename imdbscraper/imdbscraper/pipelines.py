@@ -9,6 +9,7 @@ import re
 import sqlite3
 
 from itemadapter import ItemAdapter
+from loguru import logger
 
 
 CHANGE_TO_DOLLAR = {
@@ -22,12 +23,14 @@ CHANGE_TO_DOLLAR = {
     "DK": 0.15,
     "F": 0.16,
     "R": 0.2,
-    # "$": 1,
+    "$": 1,
 }
 
 TEXT_FIELDS = ("id", "kind", "title", "original_title", "genres",
                "synopsis", "audience", "casting", "countries")
 INTEGER_FIELDS = ("duration_s", "release_year", "vote_count", "metacritic_score")
+MONEY_FIELDS = ("budget", "worldwide_gross")
+MONEY_PATTERN = r"(?P<currency>\D{1,3})(?P<amount>\S*)"
 
 
 class CleanArtworkPipeline:
@@ -56,6 +59,22 @@ class CleanArtworkPipeline:
             try:
                 adapter[field_name] = value.strip()
             except AttributeError:
+                adapter[field_name] = None
+
+        # Clean budget & gross and transtype to float, eventually converting to $
+        for field_name in MONEY_FIELDS:
+            value = adapter.get(field_name)
+            try:
+                match = re.search(MONEY_PATTERN, value)
+                currency = match["currency"]
+                amount = match["amount"]
+                try:
+                    amount = amount.replace(",", "")
+                    amount = int(amount) * CHANGE_TO_DOLLAR[currency]
+                    adapter[field_name] = round(amount)
+                except Exception as e:
+                    logger.error(f"{type(e)}: {e}")
+            except TypeError:
                 adapter[field_name] = None
 
         return item

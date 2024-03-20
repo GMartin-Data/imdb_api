@@ -193,8 +193,13 @@ class ArtworkApiSpider(scrapy.Spider):
 
         # Scrape additional data from the artwork page
         TOP_INFO = "h1[data-testid='hero__pageTitle'] ~ ul"
+        if api_data['kind'] == "Movie":
+            audience = response.css(f"{TOP_INFO} li:nth-child(2) > a ::text").get()
+        else:
+            audience = response.css(f"{TOP_INFO} li:nth-child(3) > a ::text").get()
         scraped_data = {
-            'audience': response.css(f"{TOP_INFO} li:nth-child(2) > a ::text").get(),
+            # 'audience': response.css(f"{TOP_INFO} li:nth-last-child(2) > a ::text").get(),
+            'audience': audience,
             'casting': ', '.join(response.css("a[data-testid='title-cast-item__actor']::text").getall()),
             'countries': ', '.join(response.css("li[data-testid='title-details-origin'] a::text").getall()),
         }

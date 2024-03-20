@@ -111,11 +111,13 @@ class ArtworkApiSpider(scrapy.Spider):
                 else:
                     duration_s = None
 
-                # release_year
+                # release_year & end_year
                 if (release := artwork.get('releaseYear', {})) is not None:
                     release_year = release.get('year')
+                    end_year = release.get('endYear')
                 else:
                     release_year = None
+                    end_year = None
 
                 # synopsis
                 if (plot := artwork.get('plot', {})) is None:
@@ -156,6 +158,7 @@ class ArtworkApiSpider(scrapy.Spider):
                     'genres': genres,
                     'duration_s': duration_s,
                     'release_year': release_year,
+                    'end_year': end_year,
                     'synopsis': synopsis,
                     'rating': rating,  # Implement np.nan?
                     'vote_count': vote_count,  # Implement np.nan?
@@ -225,6 +228,7 @@ class ArtworkApiSpider(scrapy.Spider):
         artwork_item["genres"] = api_data.get("genres")
         artwork_item["duration_s"] = api_data.get("duration_s")
         artwork_item["release_year"] = api_data.get("release_year")
+        artwork_item["end_year"] = api_data.get("end_year")
         artwork_item["synopsis"] = api_data.get("synopsis")
         artwork_item["rating"] = api_data.get("rating")
         artwork_item["vote_count"] = api_data.get("vote_count")

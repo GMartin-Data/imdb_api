@@ -14,6 +14,7 @@ class ArtworkItem(scrapy.Item):
     genres = scrapy.Field()
     duration_s = scrapy.Field()
     release_year = scrapy.Field()
+    end_year = scrapy.Field()
     synopsis = scrapy.Field()
     rating = scrapy.Field()
     vote_count = scrapy.Field()

@@ -106,7 +106,7 @@ class StoreSQLitePipeline:
                             countries TEXT,
                             budget INTEGER,
                             worldwide_gross INTEGER,
-                            main_casting TEXT,
+                            casting TEXT,
                             synopsis TEXT,
                             poster_link TEXT
                          )
@@ -121,7 +121,7 @@ class StoreSQLitePipeline:
             id, kind, title, original_title, genres, duration_s,
             release_year, end_year, rating, vote_count, metacritic_score,
             audience, countries, budget, worldwide_gross,
-            main_casting, synopsis, poster_link
+            casting, synopsis, poster_link
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -140,7 +140,7 @@ class StoreSQLitePipeline:
                 adapter.get("countries"),
                 adapter.get("budget"),
                 adapter.get("worldwide_gross"),
-                adapter.get("main_casting"),
+                adapter.get("casting"),
                 adapter.get("synopsis"),
                 adapter.get("poster_link")
             )

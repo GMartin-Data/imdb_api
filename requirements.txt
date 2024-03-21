@@ -1,3 +1,5 @@
 bpython<1
+ipython-sql<1
+jupyterlab<5
 loguru<1
 scrapy<3

@@ -90,7 +90,7 @@ class StoreSQLitePipeline:
     @logger.catch
     def create_table(self):
         self.cur.execute("""
-                         CREATE TABLE IF NOT EXISTS films(
+                         CREATE TABLE IF NOT EXISTS media(
                             id TEXT PRIMARY KEY ,
                             kind TEXT,
                             title TEXT,
@@ -117,7 +117,7 @@ class StoreSQLitePipeline:
         adapter = ItemAdapter(item)
         self.cur.execute(
             """
-            INSERT INTO films (
+            INSERT INTO media (
             id, kind, title, original_title, genres, duration_s,
             release_year, end_year, rating, vote_count, metacritic_score,
             audience, countries, budget, worldwide_gross,
